@@ -3,15 +3,14 @@ package Crypt::Camellia_PP;
 use strict;
 use warnings;
 use Carp;
-require Exporter;
-our @ISA = qw(Exporter);
-our $VERSION = '0.01';
-our $DEBUG = undef;
+our $VERSION = '0.02';
 
-my @SIGMA1 = ( 0xA0, 0x9E, 0x66, 0x7F, 0x3B, 0xCC, 0x90, 0x8B );
-my @SIGMA2 = ( 0xB6, 0x7A, 0xE8, 0x58, 0x4C, 0xAA, 0x73, 0xB2 );
-my @SIGMA3 = ( 0xC6, 0xEF, 0x37, 0x2F, 0xE9, 0x4F, 0x82, 0xBE );
-my @SIGMA4 = ( 0x54, 0xFF, 0x53, 0xA5, 0xF1, 0xD3, 0x6F, 0x1C );
+my $SIGMA1 = [ 0xA0, 0x9E, 0x66, 0x7F, 0x3B, 0xCC, 0x90, 0x8B ];
+my $SIGMA2 = [ 0xB6, 0x7A, 0xE8, 0x58, 0x4C, 0xAA, 0x73, 0xB2 ];
+my $SIGMA3 = [ 0xC6, 0xEF, 0x37, 0x2F, 0xE9, 0x4F, 0x82, 0xBE ];
+my $SIGMA4 = [ 0x54, 0xFF, 0x53, 0xA5, 0xF1, 0xD3, 0x6F, 0x1C ];
+my $SIGMA5 = [ 0x10, 0xE5, 0x27, 0xFA, 0xDE, 0x68, 0x2D, 0x1D ];
+my $SIGMA6 = [ 0xB0, 0x56, 0x88, 0xC2, 0xB3, 0xE6, 0xC1, 0xFD ];
 
 my @S1 = (
     112,130, 44,236,179, 39,192,229,228,133, 87, 53,234, 12,174, 65,
@@ -87,6 +86,10 @@ my @S4 = (
 );
 
 
+sub blocksize { 16 }
+sub keysize { 32 }
+
+
 
 sub new {
     my $class = shift;
@@ -98,107 +101,239 @@ sub new {
     if ($keysize != 16 && $keysize != 24 && $keysize != 32) {
         croak q{wrong key length: key must be 128, 192 or 256 bit.};
     }
-    if ($keysize == 24 || $keysize == 32) {
-        croak q{only a 128bit key is yet usable};
-    }
 
-    my @key = map {ord $_} split //, $key;
+    my @key = unpack 'C*', $key;
     my $self = bless {
         keysize => $keysize,
-        kw      => [0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0],
-        kl      => [0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0],
+        kw      => [
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ],
         k       => [
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0,
-                    0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ],
+        kl      => [
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ]
     }, $class;
-    return $self->_setup($keysize, \@key);
+    $self->_prepare_sub_key(\@key);
+    return $self;
 }
-
-sub blocksize { 16 }
-sub keysize { 16 }
 
 
 sub encrypt {
     my $self = shift;
-    my $in = [ map {ord $_} split //, shift];
-    my $l = [0,0,0,0,0,0,0,0];
-    my $r = [0,0,0,0,0,0,0,0];
-
-    _move($l, 0, $in, 0, 8);
-    _move($r, 0, $in, 8, 8);
-    _xor_block($l, $l, $self->{kw}, 8);
-    _xor_block($r, $r, [@{$self->{kw}}[8..15]], 8);
-    for (my $i = 0; $i < 18; $i += 2) {
-        _feistel($r, 0, $l, [@{$self->{k}}[(8*$i)..((8*$i)+8)]]);
-        _feistel($l, 0, $r, [@{$self->{k}}[(8*($i+1))..(8*($i+1)+8)]]);
-        if ($i == 4) {
-            _flayer($l, $l, $self->{kl}, 0);
-            _flayer_1($r, $r, [@{$self->{kl}}[8..15]], 0);
-        }
-        elsif ($i == 10) {
-            _flayer($l, $l, [@{$self->{kl}}[16..23]], 0);
-            _flayer_1($r, $r, [@{$self->{kl}}[24..31]], 0);
+    my $in = shift;
+    my $l = [ unpack 'C8', $in ];
+    my $r = [ unpack 'C8', substr $in, 8, 8];
+    _xor_block($l, $l, $self->{kw}->[0], 8);
+    _xor_block($r, $r, $self->{kw}->[1], 8);
+    if ($self->{keysize} == 16) {
+        for (my $i = 0; $i < 18; $i += 2) {
+            _feistel($r, 0, $l, $self->{k}->[$i]);
+            _feistel($l, 0, $r, $self->{k}->[$i+1]);
+            if ($i == 4) { # round 6
+                _flayer($l, $l, $self->{kl}->[0], 0);
+                _flayer_1($r, $r, $self->{kl}->[1], 0);
+            }
+            elsif ($i == 10) { # round 12
+                _flayer($l, $l, $self->{kl}->[2], 0);
+                _flayer_1($r, $r, $self->{kl}->[3], 0);
+            }
         }
     }
-    _xor_block($r, $r, [@{$self->{kw}}[16..23]], 8);
-    _xor_block($l, $l, [@{$self->{kw}}[24..31]], 8);
+    else {
+        for (my $i = 0; $i < 24; $i += 2) {
+            _feistel($r, 0, $l, $self->{k}->[$i]);
+            _feistel($l, 0, $r, $self->{k}->[$i+1]);
+            if ($i == 4) { # round 6
+                _flayer($l, $l, $self->{kl}->[0], 0);
+                _flayer_1($r, $r, $self->{kl}->[1], 0);
+            }
+            elsif ($i == 10) { # round 12
+                _flayer($l, $l, $self->{kl}->[2], 0);
+                _flayer_1($r, $r, $self->{kl}->[3], 0);
+            }
+            elsif ($i == 16) { # round 18
+                _flayer($l, $l, $self->{kl}->[4], 0);
+                _flayer_1($r, $r, $self->{kl}->[5], 0);
+            }
+        }
+    }
+    _xor_block($r, $r, $self->{kw}->[2], 8);
+    _xor_block($l, $l, $self->{kw}->[3], 8);
 
-    return join '', map {$_=pack 'C', $_} (@$r, @$l);
+    return pack 'C16', @$r, @$l;
 }
 
 
 sub decrypt {
     my $self = shift;
-    my $in = [ map {ord $_} split //, shift];
-    my $l = [0,0,0,0,0,0,0,0];
-    my $r = [0,0,0,0,0,0,0,0];
+    my $in = shift;
 
-    _move($r, 0, $in, 0, 8);
-    _move($l, 0, $in, 8, 8);
-    _xor_block($r, $r, [@{$self->{kw}}[16..23]], 8);
-    _xor_block($l, $l, [@{$self->{kw}}[24..31]], 8);
-    for (my $i = 16; $i >= 0; $i -= 2) {
-        _feistel($l, 0, $r, [@{$self->{k}}[(8*($i+1))..(8*($i+1)+8)]]);
-        _feistel($r, 0, $l, [@{$self->{k}}[(8*$i)..((8*$i)+8)]]);
-        if ($i == 12) {
-            _flayer($r, $r, [@{$self->{kl}}[24..31]]);
-            _flayer_1($l, $l, [@{$self->{kl}}[16..23]]);
-        }
-        elsif ($i == 6) {
-            _flayer($r, $r, [@{$self->{kl}}[8..15]]);
-            _flayer_1($l, $l, [@{$self->{kl}}[0..15]]);
+    my $r = [ unpack 'C8', $in ];
+    my $l = [ unpack 'C8', substr $in, 8, 8];
+    _xor_block($r, $r, $self->{kw}->[2], 8);
+    _xor_block($l, $l, $self->{kw}->[3], 8);
+    if ($self->{keysize} == 16) {
+        for (my $i = 16; $i >= 0; $i -= 2) {
+            _feistel($l, 0, $r, $self->{k}->[$i+1]);
+            _feistel($r, 0, $l, $self->{k}->[$i]);
+            if ($i == 12) {
+                _flayer($r, $r, $self->{kl}->[3]);
+                _flayer_1($l, $l, $self->{kl}->[2]);
+            }
+            elsif ($i == 6) {
+                _flayer($r, $r, $self->{kl}->[1]);
+                _flayer_1($l, $l, $self->{kl}->[0]);
+            }
         }
     }
-    _xor_block($l, $l, $self->{kw}, 8);
-    _xor_block($r, $r, [@{$self->{kw}}[8..15]], 8);
+    else {
+        for (my $i = 22; $i >= 0; $i -= 2) {
+            _feistel($l, 0, $r, $self->{k}->[$i+1]);
+            _feistel($r, 0, $l, $self->{k}->[$i]);
+            if ($i == 18) {
+                _flayer($r, $r, $self->{kl}->[5]);
+                _flayer_1($l, $l, $self->{kl}->[4]);
+            }
+            elsif ($i == 12) {
+                _flayer($r, $r, $self->{kl}->[3]);
+                _flayer_1($l, $l, $self->{kl}->[2]);
+            }
+            elsif ($i == 6) {
+                _flayer($r, $r, $self->{kl}->[1]);
+                _flayer_1($l, $l, $self->{kl}->[0]);
+            }
+        }
 
-    return join '', map {$_=pack 'C', $_} (@$l, @$r);
+    }
+    _xor_block($l, $l, $self->{kw}->[0], 8);
+    _xor_block($r, $r, $self->{kw}->[1], 8);
+
+    return pack 'C16', @$l, @$r;
 }
+
+
+
+sub _prepare_sub_key {
+    my $self = shift;
+    my $key = shift;
+    my $kl = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    my $kr = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    my $ka = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; 
+
+    if ($self->{keysize} == 16) {
+        _move($kl, 0, $key, 0, 16);
+    }
+    elsif ($self->{keysize} == 24) {
+        _move($kl, 0, $key, 0, 16); 
+        _move($kr, 0, $key, 16, 8); 
+        for (my $i = 0; $i < 8; $i++) {
+            $kr->[$i+8] = $key->[$i+16] ^ 0xff;
+        }
+    }
+    elsif ($self->{keysize} == 32) {
+        _move($kl, 0, $key, 0, 16); 
+        _move($kr, 0, $key, 16,16); 
+    }
+   
+    _xor_block($ka, $kl, $kr, 16);
+    _feistel($ka, 8, $ka, $SIGMA1);
+    _feistel($ka, 0, [@$ka[8..15]], $SIGMA2);
+    _xor_block($ka, $kl, $ka, 16);
+
+    _feistel($ka, 8, $ka, $SIGMA3);
+    _feistel($ka, 0, [@$ka[8..15]], $SIGMA4);
+
+    if ($self->{keysize} == 16) {
+        _rot_shift($self->{kw}->[0], $self->{kw}->[1], $kl, 0);
+    
+        _rot_shift($self->{k}->[0], $self->{k}->[1], $ka, 0);
+        _rot_shift($self->{k}->[2], $self->{k}->[3], $kl, 15);
+        _rot_shift($self->{k}->[4], $self->{k}->[5], $ka, 15);
+        
+        _rot_shift($self->{kl}->[0], $self->{kl}->[1], $ka, 30);
+      
+        _rot_shift($self->{k}->[6], $self->{k}->[7], $kl, 45);
+        _rot_shift($self->{k}->[8], [0,0,0,0,0,0,0,0], $ka, 45);
+        _rot_shift([0,0,0,0,0,0,0,0], $self->{k}->[9], $kl, 60);
+        _rot_shift($self->{k}->[10], $self->{k}->[11], $ka, 60);
+    
+        _rot_shift($self->{kl}->[2], $self->{kl}->[3], $kl, 77);
+      
+        _rot_shift($self->{k}->[12], $self->{k}->[13], $kl, 94);
+        _rot_shift($self->{k}->[14], $self->{k}->[15], $ka, 94);
+        _rot_shift($self->{k}->[16], $self->{k}->[17], $kl, 111);
+        
+        _rot_shift($self->{kw}->[2], $self->{kw}->[3], $ka, 111);
+    }
+    else {
+        my $kb = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        _xor_block($kb, $kr, $ka, 16);
+        _feistel($kb, 8, $kb, $SIGMA5);
+        _feistel($kb, 0, [@$kb[8..15]], $SIGMA6);
+
+        _rot_shift($self->{kw}->[0], $self->{kw}->[1], $kl, 0);
+
+        _rot_shift($self->{k}->[0], $self->{k}->[1], $kb, 0);
+        _rot_shift($self->{k}->[2], $self->{k}->[3], $kr, 15);
+        _rot_shift($self->{k}->[4], $self->{k}->[5], $ka, 15);
+
+        _rot_shift($self->{kl}->[0], $self->{kl}->[1], $kr, 30);
+
+        _rot_shift($self->{k}->[6], $self->{k}->[7], $kb, 30);
+        _rot_shift($self->{k}->[8], $self->{k}->[9], $kl, 45);
+        _rot_shift($self->{k}->[10], $self->{k}->[11], $ka, 45);
+
+        _rot_shift($self->{kl}->[2], $self->{kl}->[3], $kl, 60);
+
+        _rot_shift($self->{k}->[12], $self->{k}->[13], $kr, 60);
+        _rot_shift($self->{k}->[14], $self->{k}->[15], $kb, 60);
+        _rot_shift($self->{k}->[16], $self->{k}->[17], $kl, 77);
+
+        _rot_shift($self->{kl}->[4], $self->{kl}->[5], $ka, 77);
+
+        _rot_shift($self->{k}->[18], $self->{k}->[19], $kr, 94);
+        _rot_shift($self->{k}->[20], $self->{k}->[21], $ka, 94);
+        _rot_shift($self->{k}->[22], $self->{k}->[23], $kl, 111);
+
+        _rot_shift($self->{kw}->[2], $self->{kw}->[3], $kb, 111);
+    }
+
+    return $self;
+}
+
 
 
 sub _move {
@@ -207,85 +342,13 @@ sub _move {
     }
 }
 
-sub _setup {
-    my $self = shift;
-    my $l = shift;
-    my $key = shift;
-    my $kl = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-    my $kr = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-
-    _move($kl, 0, $key, 0, 16);
-
-    my $ka = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; 
-    _xor_block($ka, $kl, $kr, 16);
-    $self->_debug('X=', $kl);
-    $self->_debug('Y=', $kr);
-    $self->_debug('Z=', $ka);
-
-    $self->_debug('Ffunc');
-    $self->_debug('X=', $ka);
-    $self->_debug('Y=', \@SIGMA1);
-    _feistel($ka, 8, $ka, \@SIGMA1);
-    $self->_debug('Ffunc');
-    $self->_debug('X=', $ka);
-    $self->_debug('Y=', \@SIGMA1);
-    _feistel($ka, 0, [@$ka[8..15]], \@SIGMA2);
-    $self->_debug('Ffunc'); 
-    $self->_debug('X=', $ka);
-    _xor_block($ka, $kl, $ka, 16);
-    $self->_debug('X=', $ka);
-    $self->_debug('KL=', $kl);
-    $self->_debug('KA=', $ka);
-
-    _feistel($ka, 8, $ka, \@SIGMA3);
-    _feistel($ka, 0, [@$ka[8..15]], \@SIGMA4);
-    $self->_debug('Ka(128)=', $ka);
-    $self->_debug('Kl(128)=', $kl);
-
-    _rot_shift($self->{kw}, 0, $kl, 0, 16);
-    _rot_shift($self->{k},  0, $ka, 0, 16);
-    _rot_shift($self->{k}, 8*2, $kl, 15, 16);
-    _rot_shift($self->{k}, 8*4, $ka, 15, 16);
-    
-    _rot_shift($self->{kl}, 0, $ka, 30, 16);
-  
-    _rot_shift($self->{k}, 8*6, $kl, 45, 16);
-    _rot_shift($self->{k}, 8*8, $ka, 45, 16);
-    _rot_shift($self->{k}, 8*9, $kl, 60, 16);
-
-    _move($self->{k}, 8*9, [@{$self->{k}}[(8*10)..(8*10+8)]], 0, 8);
-    _rot_shift($self->{k}, 8*10, $ka, 60, 16);
-
-    _rot_shift($self->{kl}, 8*2, $kl, 77, 16);
-  
-    _rot_shift($self->{k}, 8*12, $kl, 94, 16);
-    _rot_shift($self->{k}, 8*14, $ka, 94, 16);
-    _rot_shift($self->{k}, 8*16, $kl, 111, 16);
-    
-    _rot_shift($self->{kw}, 8*2, $ka, 111, 16);
-
-    $self->_debug('Kw=', $self->{kw});
-    $self->_debug('Kl=', $self->{kl});
-    $self->_debug('K =', $self->{k});
-
-    return $self;
-}
-
-sub _debug {
-    my $self = shift;
-    my $lavel = shift;
-    my $v = shift;
-    return if !$DEBUG;
-    printf qq{%s %s\n}, $lavel, join '', map {sprintf q{%02x}, $_} @$v;
-}
 
 sub _xor_block {
-    my ($dist, $x, $y, $l) = @_;
-    $l ||= 0;
-    for (my $i = 0; $i < $l; $i++) {
-        $dist->[$i] = $x->[$i] ^ $y->[$i];
+    for (my $i = 0; $i < $_[3]; $i++) {
+        $_[0]->[$i] = $_[1]->[$i] ^ $_[2]->[$i];
     }
 }
+
 
 sub _feistel {
     my $dist = shift;
@@ -294,16 +357,9 @@ sub _feistel {
     my $k = shift;
     my $w = [0,0,0,0,0,0,0,0];
     _xor_block($w, $x, $k, 8);
-    my @ws;
     # S funcs
-    push @ws, $S1[$w->[0]];
-    push @ws, $S2[$w->[1]];
-    push @ws, $S3[$w->[2]];
-    push @ws, $S4[$w->[3]];
-    push @ws, $S2[$w->[4]];
-    push @ws, $S3[$w->[5]];
-    push @ws, $S4[$w->[6]];
-    push @ws, $S1[$w->[7]];
+    my @ws = ($S1[$w->[0]], $S2[$w->[1]], $S3[$w->[2]], $S4[$w->[3]],
+              $S2[$w->[4]], $S3[$w->[5]], $S4[$w->[6]], $S1[$w->[7]]);
     # P func
     $dist->[0+$o] ^= $ws[0] ^ $ws[2] ^ $ws[3] ^ $ws[5] ^ $ws[6] ^ $ws[7];
     $dist->[1+$o] ^= $ws[0] ^ $ws[1] ^ $ws[3] ^ $ws[4] ^ $ws[6] ^ $ws[7];
@@ -345,22 +401,26 @@ sub _flayer_1 {
 
 
 sub _rot_shift {
-    my ($dist, $off, $src, $bit, $l) = @_;
+    my ($dist_l, $dist_r, $src, $bit) = @_;
     if ($bit == 0) {
-        for (my $i = 0; $i < $l; $i++) {
-            $dist->[$i] = $src->[$i];
+        for (my $i = 0; $i < 8; $i++) {
+            $dist_l->[$i] = $src->[$i];
+        }
+        for (my $i = 0; $i < 8; $i++) {
+            $dist_r->[$i] = $src->[$i+8];
         }
         return;
     }
     my $o = int($bit / 8) + 1;
     my $so = $o * 8 - $bit;
-    $o = $o % $l;
-    for (my $i = 0; $i < $l; $i++) {
-        $dist->[$i+$off] = (($src->[($i+$o) % $l] >> $so) & 0xff)
-                    | (($src->[($i+$o-1) % $l] << (8 - $so)) & 0xff);
+    $o = $o % 16;
+    for (my $i = 0; $i < 8; $i++) {
+        $dist_l->[$i] = (($src->[($i+$o) % 16] >> $so) & 0xff)
+                    | (($src->[($i+$o-1) % 16] << (8 - $so)) & 0xff);
+        $dist_r->[$i] = (($src->[($i+8+$o) % 16] >> $so) & 0xff)
+                    | (($src->[($i+8+$o-1) % 16] << (8 - $so)) & 0xff);
     }
 }
-
 
 1;
 __END__
@@ -389,7 +449,7 @@ this module implements the Camellia cipher by Pure Perl.
 
 =item new($key)
 
-Create a new "Crypt::Camellia_PP" cipher object with the given key (which must be 128 bit long).
+Create a new "Crypt::Camellia_PP" cipher object with the given key (which must be 128 or 192 or 256 bit long).
 
 =item encrypt($data)
 

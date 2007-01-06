@@ -1,17 +1,16 @@
-#use Test::More tests => 3840;
-use Test::More tests => 1280;
+use Test::More tests => 3840;
 use Crypt::Camellia_PP;
 use strict;
 
-my ($key, $plain, $cipher);
+my ($key, $plain, $cipher, $func);
 while (my $line = <DATA>) {
     chomp $line;
-    last if $line =~ /^Camellia with 192-bit key/;
 
     if ($line =~ /^K No\.\d{3} : ([0-9A-F ]+) $/) {
         $key = $1;
         $key =~ s/ //g;
         $key = pack 'H*', $key;
+        $func = Crypt::Camellia_PP->new($key);
     }
     elsif ($line =~ /^P No\.\d{3} : ([0-9A-F ]+) $/) {
         $plain = $1;
@@ -23,9 +22,9 @@ while (my $line = <DATA>) {
         $cipher =~ s/ //g;
         $cipher = pack 'H*', $cipher;
 
-        my $func = Crypt::Camellia_PP->new($key);
         my $ct = $func->encrypt($plain);
-        ok($ct eq $cipher);
+        my $pt = $func->decrypt($ct);
+        ok($ct eq $cipher && $pt eq $plain);
     }
     else {
         next;

@@ -1,4 +1,4 @@
-use Test::More tests => 1;
+use Test::More tests => 3;
 
 use Crypt::Camellia_PP;
 
@@ -7,7 +7,6 @@ my $func = Crypt::Camellia_PP->new(pack 'H*', '0123456789abcdeffedcba9876543210'
 my $ct = $func->encrypt(pack 'H*', '0123456789abcdeffedcba9876543210');
 ok($ct eq pack 'H*', '67673138549669730857065648eabe43');
 
-__END__
 # keysize=192 msgsize=128
 $func = Crypt::Camellia_PP->new(pack 'H*', '0123456789abcdeffedcba98765432100011223344556677');
 $ct = $func->encrypt(pack 'H*', '0123456789abcdeffedcba9876543210');
